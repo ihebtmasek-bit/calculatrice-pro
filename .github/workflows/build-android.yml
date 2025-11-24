@@ -1,0 +1,78 @@
+name: Build Android APK & AAB
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Create signing keystore
+      run: |
+        keytool -genkey -v \
+          -keystore calculatorpro.keystore \
+          -alias calculatorpro \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -storepass android \
+          -keypass android \
+          -dname "CN=Calculator Pro, OU=Android, O=CalculatorPro, L=Paris, ST=France, C=FR"
+          
+    - name: Build APK Debug
+      run: ./gradlew assembleDebug
+      
+    - name: Build APK Release
+      run: ./gradlew assembleRelease
+      
+    - name: Build AAB Release
+      run: ./gradlew bundleRelease
+      
+    - name: Upload APK Debug
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-debug
+        path: app/build/outputs/apk/debug/
+        retention-days: 30
+        
+    - name: Upload APK Release
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-release
+        path: app/build/outputs/apk/release/
+        retention-days: 30
+        
+    - name: Upload AAB Release
+      uses: actions/upload-artifact@v4
+      with:
+        name: aab-release
+        path: app/build/outputs/bundle/release/
+        retention-days: 30
+        
+    - name: Upload Build Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-reports
+        path: app/build/reports/
+        retention-days: 30

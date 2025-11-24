@@ -4,23 +4,36 @@ plugins {
 
 android {
     compileSdk 33
-    namespace 'com.yourname.app'
+    namespace 'com.calculatorpro.app'
 
     defaultConfig {
-        applicationId "com.yourname.app"
+        applicationId "com.calculatorpro.app"
         minSdk 21
         targetSdk 33
         versionCode 1
         versionName "1.0"
     }
 
+    signingConfigs {
+        release {
+            storeFile file('calculatorpro.keystore')
+            storePassword 'android'
+            keyAlias 'calculatorpro'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
-    
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -29,4 +42,19 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+}
+
+// Task to print version name for GitHub Actions
+task printVersionName {
+    doLast {
+        println android.defaultConfig.versionName
+    }
+}
+
+// Task to print version code for GitHub Actions
+task printVersionCode {
+    doLast {
+        println android.defaultConfig.versionCode
+    }
 }

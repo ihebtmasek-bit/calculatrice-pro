@@ -1,0 +1,87 @@
+name: Build Signed Android Releases
+
+on:
+  push:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+env:
+  KEYSTORE_FILE: calculatorpro.keystore
+  KEY_ALIAS: calculatorpro
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+jobs:
+  build-signed:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Create or use existing keystore
+      run: |
+        if [ -f "$KEYSTORE_FILE" ]; then
+          echo "Using existing keystore"
+        else
+          echo "Creating new keystore"
+          keytool -genkey -v \
+            -keystore $KEYSTORE_FILE \
+            -alias $KEY_ALIAS \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -dname "CN=Calculator Pro, OU=Android, O=CalculatorPro, L=Paris, ST=France, C=FR"
+        fi
+        
+    - name: Build Signed APK Release
+      run: ./gradlew assembleRelease
+      
+    - name: Build Signed AAB Release
+      run: ./gradlew bundleRelease
+      
+    - name: Get version info
+      id: version
+      run: |
+        echo "APP_VERSION=$(./gradlew -q printVersionName)" >> $GITHUB_OUTPUT
+        echo "VERSION_CODE=$(./gradlew -q printVersionCode)" >> $GITHUB_OUTPUT
+        
+    - name: Upload Release Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: calculatorpro-v${{ steps.version.outputs.APP_VERSION }}
+        path: |
+          app/build/outputs/apk/release/
+          app/build/outputs/bundle/release/
+        retention-days: 90
+        
+    - name: Create GitHub Release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          app/build/outputs/apk/release/*.apk
+          app/build/outputs/bundle/release/*.aab
+        body: |
+          Calculator Pro v${{ steps.version.outputs.APP_VERSION }}
+          
+          📦 Build includes:
+          - Signed APK (Release)
+          - Android App Bundle (AAB)
+          
+          Built automatically via GitHub Actions 🚀
