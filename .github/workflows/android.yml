@@ -23,12 +23,15 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
     - name: Build with Gradle
       run: |
-        ./gradlew assembleRelease -Pandroid.injected.signing.store.file=$(pwd)/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
+        # Télécharger Gradle
+        wget https://services.gradle.org/distributions/gradle-7.5-bin.zip
+        unzip gradle-7.5-bin.zip
+        export PATH=$PWD/gradle-7.5/bin:$PATH
+        
+        # Builder l'APK
+        gradle assembleRelease
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
